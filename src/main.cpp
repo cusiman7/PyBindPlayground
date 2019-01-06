@@ -11,6 +11,11 @@
 
 #include "text_edit/TextEditor.h"
 
+#include <pybind11/pybind11.h>
+#include <pybind11/embed.h>
+#include <pybind11/eval.h>
+namespace py = pybind11;
+
 // About OpenGL function loaders: modern OpenGL doesn't have a standard header file and requires individual function pointers to be loaded manually. 
 // Helper libraries are often used for this purpose! Here we are supporting a few common ones: gl3w, glew, glad.
 // You may use another loader/header of your choice (glext, glLoadGen, etc.), or chose to manually implement your own.
@@ -107,8 +112,20 @@ int main(int, char**)
 
     bool show_demo_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
+    
     TextEditor text_editor;
+    py::scoped_interpreter guard{};
+    auto py_locals = py::dict();
+
+    std::string text = R"(
+def gen():
+  for i in range(10):
+    print(i)
+    yield
+
+gen = gen()
+    )";
+    text_editor.SetText(text);
 
     // Main loop
     bool done = false;
@@ -138,6 +155,25 @@ int main(int, char**)
         {
             ImGui::SetNextWindowSize(ImVec2(300, 300), ImGuiCond_FirstUseEver);
             ImGui::Begin("Python Console");
+
+            bool run = ImGui::Button("Run (shift+enter)");
+            run = run || (ImGui::GetIO().KeyShift && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter), false));
+            if (run) {
+                std::string text = text_editor.GetText();
+                try {
+                    py::exec(text, py::globals(), py_locals);
+
+                    auto gen = py_locals["gen"];
+                    auto it = gen.begin();
+                    while (it != gen.end()) {
+                        it++;
+                    }
+                } catch (py::error_already_set& python_error) {
+                    python_error.restore();
+                    PyErr_Print();
+                }
+            }
+
             text_editor.Render("Python Console Editor");
             ImGui::End();
         }
