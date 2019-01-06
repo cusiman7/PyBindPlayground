@@ -35,6 +35,8 @@ target_link_libraries(imgui
 
 add_executable(PyBindPlayground 
     src/main.cpp
+    src/text_edit/TextEditor.cpp
+    src/text_edit/TextEditor.h
 )
 target_link_libraries(PyBindPlayground
     PRIVATE
