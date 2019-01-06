@@ -1,2 +1,4 @@
 *.swp
 build
+compile_commands.json
+imgui.ini
